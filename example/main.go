@@ -1,13 +1,17 @@
 package main
 
-import "numa"
+import(
+       "fmt"
+        "github.com/Jaganathancse/numautils"
+)
 
+// Gets NUMA topology details
 func main() {
-    cpus, _:= numa.GetNodesCoresInfo()
+    cpus, _:= numautils.GetNodesCoresInfo()
     fmt.Println(cpus)
-    ram, _ := numa.GetNodesMemoryInfo()
+    ram, _ := numautils.GetNodesMemoryInfo()
     fmt.Println(ram)
-    nics,_ := numa.GetNodesNicsInfo()
+    nics,_ := numautils.GetNodesNicsInfo()
     fmt.Println(nics)
 }
 

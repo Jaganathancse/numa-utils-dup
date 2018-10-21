@@ -1,4 +1,4 @@
-package numa
+package numautils
 
 import (
        "fmt"
@@ -8,13 +8,6 @@ import (
        "strconv"
        "strings"
 )
-
-type NumaInfo struct {
-        node      uint32
-        threads   string
-        memory    string
-        nics      string
-}
 
 // Checks directory is available or not
 func ExistsDir(path string) (bool) {
@@ -137,7 +130,6 @@ func GetNodesCoresInfo() (map[int]string, error){
                cpuID, _ := strconv.Atoi(strings.TrimSpace(string(cpuData[:])))
                cores[cpuID] = append(cores[cpuID], threadID)
           }
-
           for cpuID, threads := range cores {
                var strThreads []string
                for _, thread := range threads {
@@ -146,15 +138,14 @@ func GetNodesCoresInfo() (map[int]string, error){
                threadsByCore += fmt.Sprintf("%d:%s",cpuID,strings.Join(strThreads,","))
                threadsByCore += " "
           }
-
           cpus[NumaNodeID] = threadsByCore
      }
      return cpus, nil
 }
 
 // Gets NICs info for each NUMA nodes
-func GetNodesNicsInfo() (map[int]string, error){
-     var nics = map[int]string{}
+func GetNodesNicsInfo() (map[int][]string, error){
+     var nics = map[int][]string{}
      nicDevicePath := "/sys/class/net/"
      if ExistsDir(nicDevicePath) {
          nicDirs, err := ListDir(nicDevicePath)
@@ -175,11 +166,9 @@ func GetNodesNicsInfo() (map[int]string, error){
              if err != nil {
                  return nil, err
              }
-             if nics[numaNodeID] != "" {
-                 nics[numaNodeID] += ","
-             }
-             nics[numaNodeID] += baseNicDir
+             nics[numaNodeID] =  append(nics[numaNodeID], baseNicDir)
          }
      }
+
      return nics, nil
 }
