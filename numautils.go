@@ -91,16 +91,21 @@ func GetNodesMemoryInfo() (map[int]string, error){
      return ram, nil
 }
 
-// Gets threads and cores details for each NUMA nodes
-func GetNodesCoresInfo() (map[int]string, error){
-     var cpus = map[int]string{}
+// Core defines Core ID and  thread siblingsinformation
+type Core struct {
+        CoreID     int
+        Threads    []int
+}
+
+func GetNodesCoresInfo() (map[int][]*Core, error){
+     var cpus = map[int][]*Core{}
      dirs, err := GetNumaNodeDirs()
      if err != nil {
          return nil, err
      }
      for _, numaNodeDir := range dirs {
+          var coresInfo = []*Core{}
           var cores = map[int][]int{}
-          var threadsByCore string
           baseNumaNodeDir := path.Base(numaNodeDir)
           if !strings.HasPrefix(baseNumaNodeDir, "node") {
               continue
@@ -130,15 +135,16 @@ func GetNodesCoresInfo() (map[int]string, error){
                cpuID, _ := strconv.Atoi(strings.TrimSpace(string(cpuData[:])))
                cores[cpuID] = append(cores[cpuID], threadID)
           }
+          fmt.Println(cores)
           for cpuID, threads := range cores {
-               var strThreads []string
-               for _, thread := range threads {
-                   strThreads = append(strThreads, strconv.Itoa(thread))
-               }
-               threadsByCore += fmt.Sprintf("%d:%s",cpuID,strings.Join(strThreads,","))
-               threadsByCore += " "
+                c := &Core{
+                        CoreID:     cpuID,
+                        Threads:    threads,
+                }
+                coresInfo = append(coresInfo, c)
           }
-          cpus[NumaNodeID] = threadsByCore
+          fmt.Println(coresInfo[0].Threads)
+          cpus[NumaNodeID] = coresInfo
      }
      return cpus, nil
 }
@@ -171,4 +177,41 @@ func GetNodesNicsInfo() (map[int][]string, error){
      }
 
      return nics, nil
+}
+
+// NUMATopology defines NUMA topology information
+type NUMATopology struct {
+        NUMA       int64
+        Memory     string
+        Nics       []string
+        Cores      []*Core
+}
+
+func GetNumaTopology() ([]*NUMATopology, error) {
+     var numaTopology []*NUMATopology
+     ram, err := GetNodesMemoryInfo()
+     if err != nil {
+          return nil, err
+     }
+
+     nics, err := GetNodesNicsInfo()
+     if err != nil {
+          return nil, err
+     }
+
+     cpus, err := GetNodesCoresInfo()
+     if err != nil {
+          return nil, err
+     }
+
+     for node, mem := range ram {
+         m := &NUMATopology{
+              NUMA:       int64(node),
+              Memory:     mem,
+              Nics:       nics[node],
+              Cores:      cpus[node],
+         }
+         numaTopology = append(numaTopology, m)
+     }
+     return numaTopology, nil
 }
