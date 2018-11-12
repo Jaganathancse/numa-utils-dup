@@ -7,6 +7,8 @@ import (
        "path"
        "strconv"
        "strings"
+
+       "github.com/cloudfoundry/bytefmt"
 )
 
 // Checks directory is available or not
@@ -86,7 +88,11 @@ func GetNodesMemoryInfo() (map[int]string, error){
                   value = strings.Trim(strings.Split(line, ":")[1], " ")
               }
           }
-          ram[NumaNodeID] = value
+          bytesVal, err := bytefmt.ToBytes(strings.Replace(value, " ", "", 1))
+          if err!=nil {
+              return nil, err
+          }
+          ram[NumaNodeID] = bytefmt.ByteSize(bytesVal)
      }
      return ram, nil
 }
